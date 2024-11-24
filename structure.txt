@@ -1,0 +1,17 @@
+project/
+├── models/
+│   ├── __init__.py
+│   ├── ensemble_detector.py
+│   ├── yolo_detector.py
+│   └── rcnn_detector.py
+├── utils/
+│   ├── __init__.py
+│   ├── data_loader.py
+│   ├── metrics.py
+│   └── visualizer.py
+├── configs/
+│   └── config.yaml
+├── train.py
+├── evaluate.py
+├── inference.py
+└── requirements.txt  # 여기에 위치
