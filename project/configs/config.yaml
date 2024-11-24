@@ -1,0 +1,26 @@
+# configs/config.yaml
+model:
+  yolo:
+    confidence_threshold: 0.3
+    nms_threshold: 0.5
+  rcnn:
+    confidence_threshold: 0.3
+    nms_threshold: 0.5
+    backbone: 'vgg16'
+
+ensemble:
+  detection_weights: [0.4, 0.6]
+  classification_weights: [0.3, 0.7]
+  size_thresholds:`
+    small: 32
+    medium: 96
+
+training:
+  batch_size: 16
+  epochs: 50
+  learning_rate: 0.001
+  weight_decay: 0.0005
+
+deployment:
+  export_format: ['onnx', 'torchscript']`
+  optimization_level: 'O2'
