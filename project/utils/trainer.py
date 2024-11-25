@@ -43,7 +43,7 @@ class Trainer:
             # 에폭마다 스케줄러 업데이트
             if self.scheduler is not None:
                 self.scheduler.step()
-
+    
     def _train_epoch(self, epoch):
         self.model.train()
         total_loss = 0
@@ -56,9 +56,12 @@ class Trainer:
             loss = self.model(images, targets)
             loss.backward()
             self.optimizer.step()
-
+            
+            if self.scheduler is not None:
+                self.scheduler.step()
+            
             total_loss += loss.item()
-        
+            
         return total_loss / len(self.train_loader)
     
     def _validate_epoch(self, epoch):
