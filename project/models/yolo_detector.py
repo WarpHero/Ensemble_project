@@ -21,6 +21,8 @@ class YOLOWithVGG16(nn.Module):
         self.device = device
         self.weights_path = weights_path
         self.num_classes = num_classes
+        self.unfreeze_epoch = unfreeze_epoch
+
 
         # VGG16 백본 초기화 (사전 학습된 가중치 사용)
         self.backbone = VGG16Backbone(pretrained=pretrained)
@@ -62,7 +64,19 @@ class YOLOWithVGG16(nn.Module):
         # YOLO 헤드로 예측 수행
         x = self.yolo_head(x)
         return x
+    def freeze_backbone(self):
+        """백본을 freeze합니다."""
+        self.backbone.freeze_backbone()
 
+    def unfreeze_backbone(self):
+        """백본을 unfreeze합니다."""
+        self.backbone.unfreeze_backbone()
+    
+    def _create_yolo_head(self, num_classes):
+        """YOLO 헤드 생성"""
+        # YOLO 헤드에 맞는 네트워크 부분을 정의
+        pass
+    
     def _preprocess_image(self, img):
         """
         이미지를 YOLO 모델에 맞게 전처리
