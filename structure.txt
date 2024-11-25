@@ -1,17 +1,26 @@
 project/
 ├── models/
 │   ├── __init__.py
-│   ├── ensemble_detector.py
-│   ├── yolo_detector.py
-│   └── rcnn_detector.py
+│   ├── ensemble_detector.py   # YOLO와 Faster R-CNN을 결합하는 코드
+│   ├── base_detector.py       # 공통 인터페이스나 추상 클래스 (YOLO, Faster R-CNN의 부모 클래스 역할)
+│   ├── yolo_detector.py       # YOLO 모델
+│   ├── rcnn_detector.py       # Faster R-CNN 모델
+│   └── backbones/             # VGG16을 포함한 Backbone들
+│       ├── __init__.py
+│       ├── vgg16.py           # VGG16 Backbone
+│       └── other_backbone.py  # 다른 Backbone (예: ResNet, EfficientNet 등)
+│ 
 ├── utils/
 │   ├── __init__.py
-│   ├── data_loader.py
-│   ├── metrics.py
-│   └── visualizer.py
+│   ├── data_loader.py       # 데이터 로딩 관련 함수
+│   ├── metrics.py           # 평가 지표 관련 함수 (예: mAP, IoU 계산)
+│   ├── visualizer.py        # 시각화 관련 함수 (예: 예측 결과 출력)
+│   ├── utils.py             # 기타 공통 유틸리티 함수 (예: NMS, 학습률 스케줄러)
+│   └── augmenter.py         # 데이터 증강 관련 함수
+│   
 ├── configs/
 │   └── config.yaml
 ├── train.py
 ├── evaluate.py
 ├── inference.py
-└── requirements.txt  # 여기에 위치
+└── requirements.txt

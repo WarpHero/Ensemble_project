@@ -1,4 +1,12 @@
 # train.py
+from models.ensemble_detector import EnsembleDetector
+from models.yolo_detector import YOLODetector
+from models.rcnn_detector import RCNNDetector
+import torch
+from torch.utils.data import DataLoader
+from utils.data_loader import CustomDataset
+from utils.metrics import evaluate_model
+
 def train_ensemble_model():
     # Colab 환경 설정
     if not torch.cuda.is_available():

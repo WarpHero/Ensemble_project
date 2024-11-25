@@ -1,18 +1,20 @@
 model:
   yolo:
     version: "v5"
-    weights: "yolov5s.pt"
-    conf_thres: 0.3
-    iou_thres: 0.5
-    
+    model_type: "yolov5s"  # 모델 종류 ('yolov5s', 'yolov5m', 'yolov5l', 'yolov5x')
+    weights: "yolov5s.pt"  # 사전 학습된 가중치 파일 경로
+    backbone: "vgg16"  # YOLO 모델에서 사용하는 Backbone을 VGG16으로 지정
+    conf_thres: 0.3        # confidence threshold
+    iou_thres: 0.5         # IOU threshold
+
   rcnn:
     backbone: "vgg16"
-    weights: null
+    weights: null          # Faster R-CNN의 경우 사전 학습된 가중치 파일 경로 (없다면 null로 두기)
     conf_thres: 0.3
-    nms_thres: 0.5
+    nms_thres: 0.5         # NMS threshold
     
 ensemble:
-  detection_weights: [0.4, 0.6]  # YOLO, RCNN
+  detection_weights: [0.4, 0.6]  # YOLO, RCNN 가중치
   classification_weights: [0.3, 0.7]
   
 training:
@@ -20,10 +22,28 @@ training:
   epochs: 50
   learning_rate: 0.001
   weight_decay: 0.0005
+  # scheduler: "cosine"  # "step" 또는 "cosine" 학습률 스케줄러 선택
+  # step_size: 10        # Step Scheduler에서 학습률 감소 주기
+  # gamma: 0.1           # Step Scheduler에서 학습률 감소율
   
 evaluation:
   metrics: ["mAP", "precision", "recall"]
+  iou_thresholds: [0.5, 0.75]  # mAP@.5, mAP@.75 계산
   size_thresholds:
-    small: 32
-    medium: 96
-    large: 256
+    small: 32     # 작은 객체 기준 크기
+    medium: 96    # 중간 크기 객체 기준
+    large: 256    # 큰 객체 기준
+  eval_frequency: 1  # 몇 에폭마다 평가할지
+  save_best: true   # 최고 성능 모델 저장
+
+logging:
+  tensorboard: true
+  log_dir: "logs"
+  save_dir: "checkpoints"
+  backup_frequency: 5  # 몇 에폭마다 체크포인트 저장할지
+  metrics_frequency: 100  # 몇 배치마다 메트릭을 출력할지
+
+device:
+  gpu_ids: [0]  # 사용할 GPU 번호
+  num_workers: 4  # 데이터 로더 워커 수
+  pin_memory: true
