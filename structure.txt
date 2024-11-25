@@ -15,7 +15,7 @@ project/
 │   ├── data_loader.py       # 데이터 로딩 관련 함수
 │   ├── metrics.py           # 평가 지표 관련 함수 (예: mAP, IoU 계산)
 │   ├── visualizer.py        # 시각화 관련 함수 (예: 예측 결과 출력)
-│   ├── trainer.py           # 
+│   ├── trainer.py           # 모델 학습을 관리하고, 학습 및 검증 과정을 포함한 트레이닝 루프를 실행
 │   ├── utils.py             # 기타 공통 유틸리티 함수 (예: NMS, 학습률 스케줄러)
 │   └── augmenter.py         # 데이터 증강 관련 함수
 │   
