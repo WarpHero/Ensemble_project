@@ -80,9 +80,14 @@ class EnsembleDetector:
         rcnn_labels = rcnn_pred['labels'].cpu().numpy()
         
         # 모든 예측 통합
-        boxes = np.vstack(yolo_boxes + [rcnn_boxes]) if len(yolo_boxes) > 0 else rcnn_boxes
-        scores = np.hstack([yolo_scores + [rcnn_scores]]) if len(yolo_scores) > 0 else rcnn_scores
-        labels = np.hstack([yolo_labels + [rcnn_labels]]) if len(yolo_labels) > 0 else rcnn_labels
+        if len(yolo_boxes) > 0:
+            boxes = np.vstack([yolo_boxes, rcnn_boxes])
+            scores = np.hstack([yolo_scores, rcnn_scores])
+            labels = np.hstack([yolo_labels, rcnn_labels])
+        else:
+            boxes = rcnn_boxes
+            scores = rcnn_scores
+            labels = rcnn_labels
         
         # Weighted Box Fusion 적용
         final_boxes, final_scores, final_labels = self.weighted_box_fusion(
@@ -174,8 +179,12 @@ class EnsembleDetector:
 
     def preprocess_for_yolo(self, image: Image.Image) -> torch.Tensor:
         """YOLO용 이미지 전처리"""
-        return self.yolo_model.preprocess(image)[0]
+        # 이미지를 torch Tensor로 변환 후 배치 차원 추가
+        img = np.array(image)  # PIL 이미지 -> NumPy array
+        img = torch.tensor(img).float()  # NumPy -> Torch tensor
+        img = img.permute(2, 0, 1) / 255.0  # HWC -> CHW, normalize to [0, 1]
+        return img.unsqueeze(0).to(self.device)
 
     def preprocess_for_rcnn(self, image: Image.Image) -> torch.Tensor:
         """Fast R-CNN용 이미지 전처리"""
-        return torchvision.transforms.functional.to_tensor(image)
+        return torchvision.transforms.functional.to_tensor(image).to(self.device)

@@ -8,13 +8,14 @@ project/
 │   └── backbones/             # VGG16을 포함한 Backbone들
 │       ├── __init__.py
 │       ├── vgg16.py           # VGG16 Backbone
-│       └── other_backbone.py  # 다른 Backbone (예: ResNet, EfficientNet 등)
+│       └── // other_backbone.py  # 다른 Backbone (예: ResNet, EfficientNet 등)
 │ 
 ├── utils/
 │   ├── __init__.py
 │   ├── data_loader.py       # 데이터 로딩 관련 함수
 │   ├── metrics.py           # 평가 지표 관련 함수 (예: mAP, IoU 계산)
 │   ├── visualizer.py        # 시각화 관련 함수 (예: 예측 결과 출력)
+│   ├── trainer.py           # 
 │   ├── utils.py             # 기타 공통 유틸리티 함수 (예: NMS, 학습률 스케줄러)
 │   └── augmenter.py         # 데이터 증강 관련 함수
 │   
