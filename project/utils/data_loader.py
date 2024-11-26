@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Union
 import json
 import xml.etree.ElementTree as ET
-from .augmenter import DataAugmenter
+# from .augmenter import DataAugmenter
 from .utils import preprocess_image
 
 class CustomDataset(Dataset):

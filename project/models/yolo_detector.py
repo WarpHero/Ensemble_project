@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torchvision.models as models
 from torchvision import transforms
+from ultralytics import YOLO
 import cv2
 import numpy as np
 
@@ -32,8 +33,12 @@ class YOLOWithVGG16(nn.Module):
 
         # YOLO 모델 가중치 로드 (기본 YOLOv5 로드, 필요시 가중치를 불러옴)
         if self.version == 'v5':
-            import yolov5
-            self.model = yolov5.load(self.weights_path)
+            try:
+                self.model = YOLO(self.weights_path)
+                print("YOLO model loaded successfully")
+            except Exception as e:
+                print(f"Error loading YOLO model: {str(e)}")
+                raise
         else:
             raise NotImplementedError(f"YOLO version {self.version} is not supported yet.")
         

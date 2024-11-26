@@ -14,12 +14,12 @@ from .utils import (
     get_optimizer,
     get_scheduler
 )
-from .augmenter import DataAugmenter
+# from .augmenter import DataAugmenter
 
 __all__ = [
     # 데이터 관련
     'CustomDataset',
-    'DataAugmenter',
+    # 'DataAugmenter',
     
     # 평가 지표 관련
     'compute_map',
@@ -35,6 +35,6 @@ __all__ = [
     # 유틸리티 함수
     'preprocess_image',
     'postprocess_predictions',
-    'get_optimizer',
-    'get_scheduler'
+    # 'get_optimizer',
+    # 'get_scheduler'
 ]

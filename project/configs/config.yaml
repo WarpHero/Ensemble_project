@@ -47,3 +47,13 @@ device:
   gpu_ids: [0]  # 사용할 GPU 번호
   num_workers: 4  # 데이터 로더 워커 수
   pin_memory: true
+
+data:
+  # train_path: '/path/to/coco/train2017'
+  # val_path: '/path/to/coco/val2017'
+  # annotation_file: '/path/to/coco/annotations/instances_train2017.json'
+  # val_annotation_file: '/path/to/coco/annotations/instances_val2017.json'
+  train_path: '/content/dataSet/train2017'  # Colab의 datasets 폴더로 경로 수정
+  val_path: '/content/dataSets/val2017'      # Colab의 datasets 폴더로 경로 수정
+  annotation_file: '/content/drive/MyDrive/coco/annotations/instances_train2017.json'  # Google Drive의 COCO 어노테이션 경로
+  val_annotation_file: '/content/drive/MyDrive/coco/annotations/instances_val2017.json'  # Google Drive의 COCO 어노테이션 경로

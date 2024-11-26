@@ -1,5 +1,26 @@
 # utils/utils.py
+import numpy as np
+import cv2  # OpenCV를 임포트
+import torch  # PyTorch를 임포트
+from typing import Tuple, Dict  # Dict를 추가로 임포트
 
+def get_optimizer(model, config):
+    """Transfer Learning을 위한 최적화 설정"""
+    # 백본은 낮은 학습률, 새로운 레이어는 높은 학습률 적용
+    backbone_params = []
+    new_params = []
+    
+    for name, param in model.named_parameters():
+        if 'backbone' in name:
+            backbone_params.append(param)
+        else:
+            new_params.append(param)
+            
+    return torch.optim.AdamW([
+        {'params': backbone_params, 'lr': config['training']['learning_rate'] * 0.1},
+        {'params': new_params, 'lr': config['training']['learning_rate']}
+    ])
+    
 def preprocess_image(image: np.ndarray, input_size: Tuple[int, int]) -> np.ndarray:
     """이미지 전처리"""
     # 크기 조정
