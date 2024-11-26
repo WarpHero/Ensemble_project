@@ -29,7 +29,14 @@ class EnsembleDetector:
         """모델 초기화 (필요한 경우에만)"""
         if cls.yolo_model is None:
             print("Initializing YOLOv5...")
-            cls.yolo_model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
+            # cls.yolo_model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
+            cls.yolo_model = YOLOWithVGG16(
+                weights_path='yolov5s.pt',
+                device='cuda' if torch.cuda.is_available() else 'cpu',
+                num_classes=91,  # COCO 데이터셋 기준
+                pretrained=True
+            )
+            cls.yolo_model.to(cls.yolo_model.device)
             cls.yolo_model.to(torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
             
         if cls.faster_rcnn is None:
