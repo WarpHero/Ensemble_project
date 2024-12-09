@@ -1,0 +1,12 @@
+backbone:
+  type: "vgg16"
+  pretrained: true
+  freeze_layers: true
+weights: null
+rpn:
+  nms_threshold: 0.7
+  pre_nms_top_n: 6000
+  post_nms_top_n: 300
+detection:
+  conf_threshold: 0.3
+  nms_threshold: 0.5

@@ -1,0 +1,17 @@
+optimizer:
+  type: "adam"
+  learning_rate: 0.001
+  weight_decay: 0.0005
+  momentum: 0.9  # SGD 사용 시
+
+scheduler:
+  type: "cosine"  # ["cosine", "step", "plateau"]
+  step_size: 10
+  gamma: 0.1
+  patience: 3  # ReduceLROnPlateau 사용 시
+
+training:
+  batch_size: 16
+  epochs: 50
+  gradient_clip: 5.0
+  warmup_epochs: 5

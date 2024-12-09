@@ -1,0 +1,12 @@
+# path_config.yaml
+default:
+  data_root: "./datasets"  # 기본 데이터 경로
+  train_path: "./datasets/train2017"
+  val_path: "./datasets/val2017"
+  annotation_path: "./datasets/annotations"
+  
+colab:
+  data_root: "/content/dataSet"
+  train_path: "/content/dataSet/train2017"
+  val_path: "/content/dataSet/val2017"
+  annotation_path: "/content/drive/MyDrive/coco/annotations"

@@ -1,0 +1,13 @@
+device:
+  gpu_ids: [0]
+  use_cuda: true
+  num_workers: 4
+  pin_memory: true
+
+logging:
+  tensorboard: true
+  log_dir: "logs"
+  save_dir: "checkpoints"
+  backup_frequency: 5
+  metrics_frequency: 100
+  log_level: "INFO"

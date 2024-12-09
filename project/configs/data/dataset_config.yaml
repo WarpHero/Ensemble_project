@@ -1,0 +1,31 @@
+paths:
+  train: '/content/dataSet/train2017'
+  val: '/content/dataSets/val2017'
+  annotations:
+    train: '/content/drive/MyDrive/coco/annotations/instances_train2017.json'
+    val: '/content/drive/MyDrive/coco/annotations/instances_val2017.json'
+
+augmentation:
+  train:
+    horizontal_flip: 0.5
+    vertical_flip: 0.0
+    random_crop: true
+    color_jitter: true
+  val:
+    resize_only: true
+
+dataloader:
+  num_workers: 4
+  pin_memory: true
+  shuffle: true
+
+dataset:
+  name: "coco"
+  num_classes: 91
+  # 상대 경로 사용
+  train:
+    images: "{data_root}/train2017"
+    annotations: "{annotation_path}/instances_train2017.json"
+  val:
+    images: "{data_root}/val2017"
+    annotations: "{annotation_path}/instances_val2017.json"

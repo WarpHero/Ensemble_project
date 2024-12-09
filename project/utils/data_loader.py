@@ -10,6 +10,7 @@ import json
 import xml.etree.ElementTree as ET
 # from .augmenter import DataAugmenter
 from .utils import preprocess_image
+from utils.path_manager import PathManager
 
 class CustomDataset(Dataset):
     """객체 검출을 위한 커스텀 데이터셋"""
