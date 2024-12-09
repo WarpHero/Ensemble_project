@@ -11,6 +11,7 @@ task: "detect"  # YOLOv8의 task type ["detect", "segment", "classify"]
 # device: null  # null = auto-detect
 device: "cuda"  # 또는 "cpu"
 mode: "train"  # ["train", "val", "predict"]
+num_classes: 80  # COCO classes without background
 
 detection:
   conf_threshold: 0.3

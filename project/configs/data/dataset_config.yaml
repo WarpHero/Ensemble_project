@@ -1,9 +1,12 @@
-paths:
-  train: '/content/dataSet/train2017'
-  val: '/content/dataSets/val2017'
-  annotations:
-    train: '/content/drive/MyDrive/coco/annotations/instances_train2017.json'
-    val: '/content/drive/MyDrive/coco/annotations/instances_val2017.json'
+# configs/data/datset_config.yaml
+# path는 path_config.yaml에서 관리
+
+# paths:
+#   train: '/content/dataSet/train2017'
+#   val: '/content/dataSets/val2017'
+#   annotations:
+#     train: '/content/drive/MyDrive/coco/annotations/instances_train2017.json'
+#     val: '/content/drive/MyDrive/coco/annotations/instances_val2017.json'
 
 augmentation:
   train:
@@ -37,7 +40,17 @@ dataset:
   file_names:
     train: "instances_train2017.json"
     val: "instances_val2017.json"
-    
+
+  # 이미지 크기 설정
+  img_size: [640, 640] # yolo 기본
+
+  # ImageNet 사용할 경우
+  # dataset:
+  # name: "imagenet"
+  # num_classes: 1000  # ImageNet 클래스 수
+  # img_size: [640, 640]
+  # class_names: []  # meta.json에서 로드
+
   # 상대 경로 사용
   # train:
   #   images: "{data_root}/train2017"
