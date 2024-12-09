@@ -4,11 +4,12 @@ weights: "yolov8s.pt"
 backbone:
   type: "vgg16"
   pretrained: true
-  freeze_layers: true
+  freeze: true
 
 # v8 specific configurations
 task: "detect"  # YOLOv8의 task type ["detect", "segment", "classify"]
-device: null  # null = auto-detect
+# device: null  # null = auto-detect
+device: "cuda"  # 또는 "cpu"
 mode: "train"  # ["train", "val", "predict"]
 
 detection:
