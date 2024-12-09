@@ -16,8 +16,27 @@ class BaseDetector(nn.Module, ABC):
         """
         super().__init__()
         self.config = config
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        # self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = sel._get_device(config)
         self.num_classes = config['data']['num_classes']
+    
+    def _get_device(self, config: Dict) -> torch.device:
+        """
+        device 설정을 결정하는 메서드
+        Args:
+            config: 설정 딕셔너리
+        Returns:
+            torch.device: 사용할 device
+        """
+        # config에서 device 설정을 가져오거나 기본값 사용
+        device = config.get('device', 'cuda' if torch.cuda.is_available() else 'cpu')
+        
+        # device가 'cuda'인데 사용 불가능한 경우 'cpu'로 폴백
+        if device == 'cuda' and not torch.cuda.is_available():
+            print("Warning: CUDA is not available, using CPU instead")
+            device = 'cpu'
+            
+        return torch.device(device)
         
     @abstractmethod
     def forward(self, images: torch.Tensor) -> Dict[str, torch.Tensor]:
