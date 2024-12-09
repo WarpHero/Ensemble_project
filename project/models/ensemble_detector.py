@@ -4,82 +4,104 @@ import torchvision
 import numpy as np
 from typing import Dict, List, Tuple, Optional
 from PIL import Image
+from ultralytics import YOLO
+
+class DetectorFactory:
+    @staticmethod
+    def create_detector(detector_type: str, config: Dict) -> 'BaseDetector':
+        if detector_type == 'yolo':
+            return YOLOV8Detector(config)
+        elif detector_type == 'faster_rcnn':
+            return FasterRCNNDetector(config)
+        raise ValueError(f"Unsupported detector type: {detector_type}")
+
+class BaseDetector:
+    def __init__(self, config: Dict):
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.config = config
+        
+    def detect(self, image: torch.Tensor) -> Dict:
+        raise NotImplementedError
+        
+    def preprocess(self, image: Image.Image) -> torch.Tensor:
+        raise NotImplementedError
+
+class YOLOV8Detector(BaseDetector):
+    def __init__(self, config: Dict):
+        super().__init__(config)
+        self.model = YOLO(config['weights'])
+        self.model.to(self.device)
+        
+    def detect(self, image: torch.Tensor) -> Dict:
+        results = self.model(image)
+        return self._process_results(results[0])
+    
+    def _process_results(self, result) -> Dict:
+        return {
+            'boxes': result.boxes.xyxy.cpu().numpy(),
+            'scores': result.boxes.conf.cpu().numpy(),
+            'labels': result.boxes.cls.cpu().numpy().astype(int)
+        }
+        
+    def preprocess(self, image: Image.Image) -> torch.Tensor:
+        return torch.tensor(np.array(image)).permute(2, 0, 1).float() / 255.0
+
+class FasterRCNNDetector(BaseDetector):
+    def __init__(self, config: Dict):
+        super().__init__(config)
+        backbone = torchvision.models.vgg16(pretrained=True).features
+        self.model = torchvision.models.detection.FasterRCNN(
+            backbone=backbone,
+            num_classes=91,
+            box_detections_per_img=500,
+            box_score_thresh=config.get('conf_threshold', 0.3)
+        )
+        self.model.to(self.device)
+        
+    def detect(self, image: torch.Tensor) -> Dict:
+        self.model.eval()
+        with torch.no_grad():
+            predictions = self.model([image])[0]
+        return predictions
+        
+    def preprocess(self, image: Image.Image) -> torch.Tensor:
+        return torchvision.transforms.functional.to_tensor(image)
 
 class EnsembleDetector:
-    yolo_model = None
-    faster_rcnn = None
-    
-    def __init__(self,
-                 conf_thres=0.3,
-                 iou_thres=0.5,
-                 detection_weights=(0.4, 0.6),    # YOLO, Fast R-CNN
-                 classification_weights=(0.3, 0.7) # YOLO, Fast R-CNN
-                ):
+    def __init__(self, config: Dict):
+        self.config = config
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.conf_thres = conf_thres
-        self.iou_thres = iou_thres
-        self.detection_weights = detection_weights
-        self.classification_weights = classification_weights
         
-        # 초기화
-        self._initialize_models()
-
-    @classmethod
-    def _initialize_models(cls):
-        """모델 초기화 (필요한 경우에만)"""
-        if cls.yolo_model is None:
-            print("Initializing YOLOv5...")
-            # cls.yolo_model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
-            cls.yolo_model = YOLOWithVGG16(
-                weights_path='yolov5s.pt',
-                device='cuda' if torch.cuda.is_available() else 'cpu',
-                num_classes=91,  # COCO 데이터셋 기준
-                pretrained=True
-            )
-            cls.yolo_model.to(cls.yolo_model.device)
-            cls.yolo_model.to(torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
-            
-        if cls.faster_rcnn is None:
-            print("Initializing Faster R-CNN with VGG16 backbone...")
-            backbone = torchvision.models.vgg16(pretrained=True).features
-            cls.faster_rcnn = torchvision.models.detection.FasterRCNN(
-                backbone=backbone,
-                num_classes=91,  # COCO 데이터셋 기준
-                box_detections_per_img=500,
-                box_score_thresh=0.3
-            )
-            cls.faster_rcnn.to(torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+        # 설정값 초기화
+        self.conf_thres = config.get('conf_threshold', 0.3)
+        self.iou_thres = config.get('iou_threshold', 0.5)
+        self.detection_weights = config.get('detection_weights', (0.4, 0.6))
+        self.classification_weights = config.get('classification_weights', (0.3, 0.7))
+        
+        # 모델 초기화
+        factory = DetectorFactory()
+        self.yolo_model = factory.create_detector('yolo', config['yolo'])
+        self.faster_rcnn = factory.create_detector('faster_rcnn', config['rcnn'])
 
     def detect(self, image: Image.Image) -> Dict:
         """객체 감지 수행"""
         # 이미지 전처리
-        yolo_input = self.preprocess_for_yolo(image)
-        rcnn_input = self.preprocess_for_rcnn(image)
+        yolo_input = self.yolo_model.preprocess(image).to(self.device)
+        rcnn_input = self.faster_rcnn.preprocess(image).to(self.device)
         
         # 예측 수행
-        with torch.no_grad():
-            # YOLOv5 예측
-            yolo_pred = self.yolo_model(yolo_input)
-            
-            # Faster R-CNN 예측
-            self.faster_rcnn.eval()
-            rcnn_pred = self.faster_rcnn([rcnn_input])[0]
+        yolo_pred = self.yolo_model.detect(yolo_input)
+        rcnn_pred = self.faster_rcnn.detect(rcnn_input)
         
         # 앙상블 예측 수행
         return self.ensemble_predictions(yolo_pred, rcnn_pred, image.size)
 
-    def ensemble_predictions(self, yolo_pred, rcnn_pred, image_size):
+    def ensemble_predictions(self, yolo_pred: Dict, rcnn_pred: Dict, image_size: Tuple[int, int]) -> Dict:
         """두 모델의 예측 결과를 통합"""
-        # YOLOv5 결과 처리
-        yolo_boxes = []
-        yolo_scores = []
-        yolo_labels = []
-        
-        for *xyxy, conf, cls in yolo_pred.xyxy[0].cpu().numpy():
-            if conf >= self.conf_thres:
-                yolo_boxes.append(xyxy)
-                yolo_scores.append(conf * self.detection_weights[0])
-                yolo_labels.append(int(cls))
+        # YOLOv8 결과 처리
+        yolo_boxes = yolo_pred['boxes']
+        yolo_scores = yolo_pred['scores'] * self.detection_weights[0]
+        yolo_labels = yolo_pred['labels']
         
         # Faster R-CNN 결과 처리
         rcnn_boxes = rcnn_pred['boxes'].cpu().numpy()
@@ -87,19 +109,12 @@ class EnsembleDetector:
         rcnn_labels = rcnn_pred['labels'].cpu().numpy()
         
         # 모든 예측 통합
-        if len(yolo_boxes) > 0:
-            boxes = np.vstack([yolo_boxes, rcnn_boxes])
-            scores = np.hstack([yolo_scores, rcnn_scores])
-            labels = np.hstack([yolo_labels, rcnn_labels])
-        else:
-            boxes = rcnn_boxes
-            scores = rcnn_scores
-            labels = rcnn_labels
+        boxes = np.vstack([yolo_boxes, rcnn_boxes]) if len(yolo_boxes) > 0 else rcnn_boxes
+        scores = np.hstack([yolo_scores, rcnn_scores]) if len(yolo_scores) > 0 else rcnn_scores
+        labels = np.hstack([yolo_labels, rcnn_labels]) if len(yolo_labels) > 0 else rcnn_labels
         
         # Weighted Box Fusion 적용
-        final_boxes, final_scores, final_labels = self.weighted_box_fusion(
-            boxes, scores, labels
-        )
+        final_boxes, final_scores, final_labels = self.weighted_box_fusion(boxes, scores, labels)
         
         return {
             'boxes': final_boxes,

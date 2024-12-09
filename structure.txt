@@ -1,14 +1,29 @@
 project/
+
+├──ensemble/
+│   ├── __init__.py
+│   ├── strategies/
+│   │   ├── __init__.py
+│   │   ├── nms_fusion.py      # NMS 기반 앙상블
+│   │   ├── wbf_fusion.py      # Weighted Box Fusion
+│   │   └── soft_nms_fusion.py # Soft-NMS
+│   └── postprocess/
+│       ├── __init__.py
+│       └── box_fusion.py      # bbox 후처리 로직
 ├── models/
 │   ├── __init__.py
 │   ├── ensemble_detector.py   # YOLO와 Faster R-CNN을 결합하는 코드
 │   ├── base_detector.py       # 공통 인터페이스나 추상 클래스 (YOLO, Faster R-CNN의 부모 클래스 역할)
 │   ├── yolo_detector.py       # YOLO 모델
 │   ├── rcnn_detector.py       # Faster R-CNN 모델
-│   └── backbones/             # VGG16을 포함한 Backbone들
-│       ├── __init__.py
-│       ├── vgg16.py           # VGG16 Backbone
-│       └── // other_backbone.py  # 다른 Backbone (예: ResNet, EfficientNet 등)
+│   ├── backbones/             # VGG16을 포함한 Backbone들
+│   │    ├── __init__.py
+│   │    ├── vgg16.py           # VGG16 Backbone
+│   │    └── // other_backbone.py  # 다른 Backbone (예: ResNet, EfficientNet 등)
+│   └── necks/          # 추가: FPN, PAN 등의 neck 구조
+│        ├── __init__.py
+│        ├── fpn.py
+│        └── pan.py
 │ 
 ├── utils/
 │   ├── __init__.py
@@ -17,10 +32,27 @@ project/
 │   ├── visualizer.py        # 시각화 관련 함수 (예: 예측 결과 출력)
 │   ├── trainer.py           # 모델 학습을 관리하고, 학습 및 검증 과정을 포함한 트레이닝 루프를 실행
 │   ├── utils.py             # 기타 공통 유틸리티 함수 (예: NMS, 학습률 스케줄러)
-│   └── augmenter.py         # 데이터 증강 관련 함수
+│   ├── augmenter.py         # 데이터 증강 관련 함수
+│   ├── logger.py           # 추가: 로깅 유틸리티
+│   └── checkpoint.py       # 추가: 모델 체크포인트 관리
 │   
 ├── configs/
-│   └── config.yaml
+│   ├── models/
+│   │   ├── yolo.yaml
+│   │   └── faster_rcnn.yaml
+│   ├── ensemble/
+│   │   └── ensemble_config.yaml
+│   ├── data/
+│   │   └── dataset_config.yaml
+│   └── train/
+│       └── training_config.yaml
+│   
+├── tests/
+│   ├── __init__.py
+│   ├── test_models/
+│   ├── test_ensemble/
+│   └── test_utils/
+│   
 ├── train.py
 ├── evaluate.py
 ├── inference.py

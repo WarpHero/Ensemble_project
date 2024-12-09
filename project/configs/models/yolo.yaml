@@ -1,0 +1,27 @@
+version: "v8"
+model_type: "yolov8s"  # ["yolov8n", "yolov8s", "yolov8m", "yolov8l", "yolov8x"]
+weights: "yolov8s.pt"
+backbone:
+  type: "vgg16"
+  pretrained: true
+  freeze_layers: true
+
+# v8 specific configurations
+task: "detect"  # YOLOv8의 task type ["detect", "segment", "classify"]
+device: null  # null = auto-detect
+mode: "train"  # ["train", "val", "predict"]
+
+detection:
+  conf_threshold: 0.3
+  iou_threshold: 0.5
+  nms_threshold: 0.5
+  max_det: 300  # 최대 detection 수
+  classes: null  # 특정 클래스만 탐지하려면 클래스 인덱스 지정
+
+# v8 training specific
+training:
+  imgsz: 640  # 입력 이미지 크기
+  single_cls: false  # single class detection
+  rect: false  # rectangular training
+  cos_lr: true  # cosine LR scheduler
+  close_mosaic: 10  # last epoch to use mosaic
