@@ -1,89 +1,120 @@
 # models/rcnn_detector.py
-
 import torch
-from torchvision import models, transforms
+import torch.nn as nn
+from torchvision import transforms
 import numpy as np
-import matplotlib.pyplot as plt
+from typing import Dict, Tuple, List, Optional, Union
 from PIL import Image
-# import detectron2
-# from detectron2.engine import DefaultPredictor
-# from detectron2.config import get_cfg
-# from detectron2 import model_zoo
-# from detectron2.utils.visualizer import Visualizer
-# from detectron2.data import MetadataCatalog
 
-class FasterRCNNDetector:
-    def __init__(self, device='cuda'):
+from .base_detector import BaseDetector
+from .backbones.vgg16 import VGG16Backbone
+
+class FasterRCNNDetector(BaseDetector):
+    def __init__(self, config: Dict):
         """
-        Faster R-CNN 모델 초기화 (PyTorch의 torchvision 모델 사용)
-        :param device: 'cuda' or 'cpu'
+        Faster R-CNN 디텍터 초기화
+        Args:
+            config: 설정 딕셔너리
         """
-        self.device = device
+        super().__init__(config)
 
-        # 모델 초기화
-        self.model = models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
-        self.model.eval()  # 평가 모드로 설정
-        self.model.to(self.device)  # 모델을 지정된 장치로 이동
+        # 설정 불러오기
+        self.num_classes = config.get('num_classes', 81)  # COCO 기준 (80 + 배경)
+        self.conf_threshold = config.get('conf_threshold', 0.3)
+        self.nms_threshold = config.get('nms_threshold', 0.5)
+        
+        # Backbone 초기화
+        self.backbone = self._create_backbone()
+        
+        # Faster R-CNN 모델 초기화
+        self.model = self._create_faster_rcnn()
+        self.model.to(self.device)
 
-        # 이미지 변환 (transforms)
+        # 이미지 변환
         self.transform = transforms.Compose([
-            transforms.ToTensor(),  # 이미지를 Tensor로 변환
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+                              std=[0.229, 0.224, 0.225])
         ])
 
-    def predict(self, img):
+    def forward(self, images: torch.Tensor) -> Dict[str, torch.Tensor]:
         """
-        이미지를 입력받아 객체 탐지를 수행하고 결과를 반환
-        :param img: 입력 이미지 (PIL Image 또는 numpy array, RGB 포맷)
-        :return: 탐지된 객체들의 bounding box, confidence score, label
+        순전파 수행
+        Args:
+            images: 입력 이미지 배치 (B, C, H, W)
+        Returns:
+            Dict: Faster R-CNN 출력 (boxes, scores, labels)
         """
-        # 이미지를 Tensor로 변환하고 배치 차원 추가
-        img_tensor = self.transform(img).unsqueeze(0).to(self.device)
+        return self.model(images)
 
-        # 예측 수행
+    def detect(self, images: torch.Tensor) -> Dict[str, np.ndarray]:
+        """
+        객체 검출 수행
+        Args:
+            images: 입력 이미지 배치
+        Returns:
+            Dict: 검출 결과 (boxes, scores, labels)
+        """
+        self.eval()
         with torch.no_grad():
-            outputs = self.model(img_tensor)
+            predictions = self.model(images)
+            
+        # 결과 후처리
+        boxes = []
+        scores = []
+        labels = []
+        
+        for pred in predictions:
+            boxes.append(pred['boxes'].cpu().numpy())
+            scores.append(pred['scores'].cpu().numpy())
+            labels.append(pred['labels'].cpu().numpy())
+            
+        return {
+            'boxes': np.concatenate(boxes) if boxes else np.array([]),
+            'scores': np.concatenate(scores) if scores else np.array([]),
+            'labels': np.concatenate(labels) if labels else np.array([])
+        }
 
-        # 결과 추출
-        boxes = outputs[0]["boxes"].cpu().numpy()  # bounding boxes
-        scores = outputs[0]["scores"].cpu().numpy()  # confidence scores
-        labels = outputs[0]["labels"].cpu().numpy()  # 클래스 라벨
-
-        return boxes, scores, labels
-
-    def visualize_predictions(self, img, boxes, scores, labels, conf_thres=0.3):
+    def get_features(self, images: torch.Tensor) -> Dict[str, torch.Tensor]:
         """
-        예측된 결과를 이미지 위에 시각화
-        :param img: 원본 이미지 (PIL Image)
-        :param boxes: 예측된 bounding boxes
-        :param scores: 예측된 confidence scores
-        :param labels: 예측된 클래스 라벨
-        :param conf_thres: 최소 confidence score
-        :return: 시각화된 이미지
+        이미지에서 특징 추출
+        Args:
+            images: 입력 이미지 배치
+        Returns:
+            Dict: 각 스테이지별 특징 맵
         """
-        # 결과 필터링: 신뢰도가 설정된 threshold 이상인 객체만 시각화
-        indices = np.where(scores > conf_thres)[0]
+        return self.backbone(images)
 
-        # 시각화
-        fig, ax = plt.subplots(1, figsize=(12, 9))
-        ax.imshow(img)
+    def preprocess(self, image: Union[np.ndarray, PIL.Image.Image]) -> torch.Tensor:
+        """
+        이미지 전처리
+        Args:
+            image: OpenCV 이미지 또는 PIL 이미지
+        Returns:
+            torch.Tensor: 전처리된 이미지 텐서
+        """
+        if isinstance(image, np.ndarray):
+            image = Image.fromarray(image)
+        return self.transform(image).unsqueeze(0).to(self.device)
 
-        # bounding boxes 그리기
-        for idx in indices:
-            box = boxes[idx]
-            label = labels[idx]
-            score = scores[idx]
+    @property
+    def model_type(self) -> str:
+        return 'faster_rcnn'
 
-            # bounding box 그리기
-            x1, y1, x2, y2 = box
-            rect = plt.Rectangle((x1, y1), x2 - x1, y2 - y1,
-                                 linewidth=2, edgecolor='r', facecolor='none')
-            ax.add_patch(rect)
-
-            # 라벨과 신뢰도 표시
-            ax.text(x1, y1, f'{label}: {score:.2f}', color='red', fontsize=12)
-
-        plt.axis('off')
-        plt.show()
+    def train_step(self, batch: Dict[str, torch.Tensor]) -> Dict[str, float]:
+        """
+        학습 스텝 수행
+        Args:
+            batch: 학습 배치
+        Returns:
+            Dict: 손실값들
+        """
+        self.train()
+        images = batch['images']
+        targets = batch['targets']
+        
+        loss_dict = self.model(images, targets)
+        return {k: v.item() for k, v in loss_dict.items()}
 
 # 사용 예시
 if __name__ == '__main__':
@@ -99,3 +130,29 @@ if __name__ == '__main__':
 
     # 예측 결과 시각화
     detector.visualize_predictions(img, boxes, scores, labels, conf_thres=0.3)
+
+
+"""
+# VGG16 백본 사용
+config = {
+    'backbone': {
+        'type': 'vgg16',
+        'pretrained': True,
+        'freeze': True
+    },
+    'num_classes': 91
+}
+
+# ResNet50 백본 사용
+config = {
+    'backbone': {
+        'type': 'resnet50',
+        'pretrained': True,
+        'freeze': True,
+        'trainable_stages': [4, 5]
+    },
+    'num_classes': 91
+}
+
+detector = FasterRCNNDetector(config)
+"""
