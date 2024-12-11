@@ -46,12 +46,11 @@ class Inference:
         try:
             checkpoint = torch.load(model_path, map_location=self.device)
             
-            # 모델 초기화
-            model = EnsembleDetector(
-                config=checkpoint.get('config', self.config),
-                detection_weights=self.config['ensemble']['detection_weights'],
-                classification_weights=self.config['ensemble']['classification_weights']
-            ).to(self.device)
+            # Factory 패턴 사용
+            from models import create_detector
+            
+            model = create_detector(checkpoint.get('config', self.config))
+            model.to(self.device)
             
             # 가중치 로드
             model.load_state_dict(checkpoint['model_state_dict'])
@@ -172,54 +171,7 @@ class Inference:
         except Exception as e:
             self.logger.error(f"Error during batch inference: {str(e)}")
             raise
-        
-    def export_model(self, 
-                    output_path: Union[str, Path],
-                    format: str = 'onnx',
-                    input_shape: Tuple[int, int, int, int] = (1, 3, 640, 640)
-                   ) -> None:
-        """
-        모델을 다른 포맷으로 내보내기
-        
-        Parameters:
-            output_path: 저장할 경로
-            format: 변환 포맷 ('onnx', 'torchscript')
-            input_shape: 입력 텐서 shape (batch_size, channels, height, width)
-        """
-        try:
-            output_path = Path(output_path)
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            
-            if format.lower() == 'onnx':
-                dummy_input = torch.randn(input_shape).to(self.device)
-                torch.onnx.export(
-                    self.model,
-                    dummy_input,
-                    output_path,
-                    opset_version=11,
-                    input_names=['input'],
-                    output_names=['boxes', 'scores', 'labels'],
-                    dynamic_axes={
-                        'input': {0: 'batch_size'},
-                        'boxes': {0: 'batch_size'},
-                        'scores': {0: 'batch_size'},
-                        'labels': {0: 'batch_size'}
-                    }
-                )
-                
-            elif format.lower() == 'torchscript':
-                scripted_model = torch.jit.script(self.model)
-                scripted_model.save(output_path)
-                
-            else:
-                raise ValueError(f"Unsupported export format: {format}")
-                
-            self.logger.info(f"Model exported successfully to {output_path}")
-            
-        except Exception as e:
-            self.logger.error(f"Error exporting model: {str(e)}")
-            raise
-
+    
 def main():
     """추론 예시"""
     try:
