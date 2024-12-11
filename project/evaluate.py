@@ -68,12 +68,11 @@ class ModelEvaluator:
         try:
             checkpoint = torch.load(self.checkpoint_path, map_location=self.device)
             
-            # 모델 초기화
-            model = EnsembleDetector(
-                config=checkpoint.get('config', self.config),
-                detection_weights=self.config['ensemble']['detection_weights'],
-                classification_weights=self.config['ensemble']['classification_weights']
-            ).to(self.device)
+            # Factory 패턴 사용
+            from models import create_detector
+            
+            model = create_detector(checkpoint.get('config', self.config))
+            model.to(self.device)
             
             # 가중치 로드
             model.load_state_dict(checkpoint['model_state_dict'])
@@ -88,11 +87,11 @@ class ModelEvaluator:
             
     def _create_dataloader(self) -> torch.utils.data.DataLoader:
         """검증 데이터 로더 생성"""
-        return create_imagenet_dataloader(
-            self.config['data']['val_path'],
-            batch_size=self.config['evaluation']['batch_size'],
-            split='val',
-            num_workers=self.config['device']['num_workers']
+        from utils.data_loader import create_data_loader  # ImageNet -> COCO
+
+        return create_data_loader(
+            config=self.config,
+            is_train=False
         )
         
     def evaluate(self) -> Dict[str, float]:
