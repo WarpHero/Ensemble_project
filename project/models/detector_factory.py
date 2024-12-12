@@ -1,7 +1,12 @@
 # models/detector_factory.py
+from typing import Dict
+from .base_detector import BaseDetector
+from .yolo_detector import YOLOV8Detector
+from .rcnn_detector import FasterRCNNDetector
+
 class DetectorFactory:
     @staticmethod
-    def create_detector(detector_type, config):
+    def create_detector(detector_type: str, config):
         if detector_type.startswith('yolo'):
             version = config['version']
             if version == 'v8':
@@ -15,32 +20,3 @@ class DetectorFactory:
             return FasterRCNNDetector(config)
         else:
             raise ValueError(f"Unsupported detector type: {detector_type}")
-
-# models/yolo_detector.py
-class BaseYOLODetector(BaseDetector):
-    """YOLO 모델들의 공통 기능을 구현하는 기본 클래스"""
-    def __init__(self, config):
-        super().__init__()
-        self.config = config
-        
-    @abstractmethod
-    def load_model(self):
-        pass
-        
-    @abstractmethod
-    def preprocess(self, images):
-        pass
-
-class YOLOV8Detector(BaseYOLODetector):
-    def __init__(self, config):
-        super().__init__(config)
-        self.model = self.load_model()
-    
-    def load_model(self):
-        from ultralytics import YOLO
-        model = YOLO(self.config['weights'])
-        return model
-    
-    def detect(self, images):
-        results = self.model(images)
-        return self._process_results(results)

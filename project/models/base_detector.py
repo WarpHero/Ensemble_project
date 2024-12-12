@@ -17,8 +17,8 @@ class BaseDetector(nn.Module, ABC):
         super().__init__()
         self.config = config
         # self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.device = sel._get_device(config)
-        self.num_classes = config['data']['num_classes']
+        self.device = self._get_device(config)
+        self.num_classes = config.get('num_classes', 80)  # COCO 기본값
     
     def _get_device(self, config: Dict) -> torch.device:
         """

@@ -6,26 +6,6 @@ from typing import Dict, List, Tuple, Optional
 from PIL import Image
 from ultralytics import YOLO
 
-class DetectorFactory:
-    @staticmethod
-    def create_detector(detector_type: str, config: Dict) -> 'BaseDetector':
-        if detector_type == 'yolo':
-            return YOLOV8Detector(config)
-        elif detector_type == 'faster_rcnn':
-            return FasterRCNNDetector(config)
-        raise ValueError(f"Unsupported detector type: {detector_type}")
-
-class BaseDetector:
-    def __init__(self, config: Dict):
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.config = config
-        
-    def detect(self, image: torch.Tensor) -> Dict:
-        raise NotImplementedError
-        
-    def preprocess(self, image: Image.Image) -> torch.Tensor:
-        raise NotImplementedError
-
 class YOLOV8Detector(BaseDetector):
     def __init__(self, config: Dict):
         super().__init__(config)
