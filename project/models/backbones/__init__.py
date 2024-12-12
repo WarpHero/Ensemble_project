@@ -5,4 +5,4 @@ from .vgg16 import VGG16Backbone
 # from .mobilenet import MobileNetBackbone
 
 # __all__ = ['VGG16Backbone', 'ResNetBackbone', 'EfficientNetBackbone', 'MobileNetBackbone']
- __all__ = ['VGG16Backbone']
+__all__ = ['VGG16Backbone']
