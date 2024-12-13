@@ -6,6 +6,7 @@ from typing import Dict, List, Tuple, Optional
 import PIL
 from PIL import Image
 from ultralytics import YOLO
+from .detector_factory import DetectorFactory
 
 class EnsembleDetector:
     def __init__(self, config: Dict):
@@ -22,6 +23,9 @@ class EnsembleDetector:
         factory = DetectorFactory()
         self.yolo_model = factory.create_detector('yolo', config['yolo'])
         self.faster_rcnn = factory.create_detector('faster_rcnn', config['rcnn'])
+        # 모델 초기화 상호 참조 문제로 인하여
+        # self.yolo_model = YOLOV8Detector(config['yolo'])
+        # self.faster_rcnn = FasterRCNNDetector(config['rcnn'])
 
     def detect(self, image: Image.Image) -> Dict:
         """객체 감지 수행"""

@@ -3,6 +3,7 @@ detector_type: "yolo"  # detector type
 version: "v8"
 model_type: "yolov8s"  # ["yolov8n", "yolov8s", "yolov8m", "yolov8l", "yolov8x"]
 weights: "yolov8s.pt"
+use_custom_backbone : True
 backbone:
   type: "vgg16"
   pretrained: true

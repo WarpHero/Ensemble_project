@@ -2,6 +2,7 @@
 detector_type: 'faster_rcnn' # detector_type
 
 device: "cuda"  # 또는 "cpu"
+use_custom_backbone : True
 backbone:
   type: "vgg16"  # ["vgg16", "resnet50", "efficientnet"]
   pretrained: true

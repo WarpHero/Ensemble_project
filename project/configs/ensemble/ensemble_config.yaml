@@ -1,11 +1,37 @@
-strategy: "weighted_fusion"  # ["weighted_fusion", "nms_fusion", "soft_nms"]
-weights:
-  detection: [0.4, 0.6]  # YOLO, RCNN 가중치
-  classification: [0.3, 0.7]
-fusion:
+# strategy: "weighted_fusion"  # ["weighted_fusion", "nms_fusion", "soft_nms"]
+# weights:
+#   detection: [0.4, 0.6]  # YOLO, RCNN 가중치
+#   classification: [0.3, 0.7]
+# fusion:
+#   iou_threshold: 0.5
+#   score_threshold: 0.3
+#   soft_nms_sigma: 0.5  # Soft-NMS 사용 시
+# feature_fusion:
+#   enabled: false
+#   method: "concat"  # ["concat", "sum", "attention"]
+
+model:
+  yolo:
+    version: "v8"
+    size: "s"
+    pretrained: true
+    confidence_threshold: 0.25
+  rcnn:
+    backbone: "vgg16"
+    pretrained: true
+    rpn_nms_thresh: 0.7
+
+ensemble:
+  strategy: "wbf"  # ['nms', 'wbf', 'soft_nms']
   iou_threshold: 0.5
   score_threshold: 0.3
-  soft_nms_sigma: 0.5  # Soft-NMS 사용 시
-feature_fusion:
-  enabled: false
-  method: "concat"  # ["concat", "sum", "attention"]
+  weights: [0.5, 0.5]  # YOLO와 RCNN의 가중치
+
+training:
+  batch_size: 16
+  epochs: 100
+  optimizer:
+    type: "adam"
+    lr: 0.001
+  scheduler:
+    type: "cosine"

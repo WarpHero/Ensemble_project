@@ -1,6 +1,8 @@
 # models/rcnn_detector.py
 import torch
 import torch.nn as nn
+import torchvision
+import torchvision.models.detection as detection
 from torchvision import transforms
 import numpy as np
 from typing import Dict, Tuple, List, Optional, Union
@@ -23,12 +25,38 @@ class FasterRCNNDetector(BaseDetector):
         self.num_classes = config.get('num_classes', 81)  # COCO 기준 (80 + 배경)
         self.conf_threshold = config.get('conf_threshold', 0.3)
         self.nms_threshold = config.get('nms_threshold', 0.5)
+
+        # backbone 교체 여부 확인
+        use_custom_backbone = config.get('use_custom_backbone', False)
         
-        # Backbone 초기화
-        self.backbone = self._create_backbone()
+        if use_custom_backbone:
+            # 커스텀 백본 사용
+            backbone_config = config.get('backbone', {
+                'type': 'vgg16',
+                'pretrained': True,
+                'freeze': True
+            })
+            # Backbone 초기화
+            self.backbone = self._create_backbone(backbone_config)
+            # Faster R-CNN 모델 초기화
+            self.model = self._create_faster_rcnn()
         
-        # Faster R-CNN 모델 초기화
-        self.model = self._create_faster_rcnn()
+        else:
+            # 사전 학습된 Faster R-CNN 사용
+            try:
+                self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(
+                    pretrained=True,
+                    # num_classes=self.num_classes,
+                    num_classes=91,
+                    box_detections_per_img=500,
+                    box_score_thresh=self.conf_threshold,
+                    box_nms_thresh=self.nms_threshold
+                )
+                print("Pretrained Faster R-CNN loaded successfully")
+            except Exception as e:
+                print(f"Error loading Faster R-CNN model: {str(e)}")
+                raise
+
         self.model.to(self.device)
 
         # 이미지 변환
@@ -76,7 +104,51 @@ class FasterRCNNDetector(BaseDetector):
             'labels': np.concatenate(labels) if labels else np.array([])
         }
 
-    def _create_backbone(self) -> nn.Module:
+    def get_loss(self,
+             predictions: Dict[str, torch.Tensor],
+             targets: Dict[str, torch.Tensor]
+             ) -> Dict[str, torch.Tensor]:
+        """
+        학습에 사용될 손실 함수 계산
+        Args:
+            predictions: 모델의 예측값
+            targets: 실제 정답값
+        Returns:
+            Dict: 각 손실 값들을 담은 dictionary
+        """
+        # Faster R-CNN은 내부적으로 loss를 계산하므로 모델의 loss를 그대로 반환
+        return self.model(predictions, targets)
+
+    def predict(self, images: torch.Tensor, conf_threshold: Optional[float] = None, 
+            nms_threshold: Optional[float] = None) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        이미지에서 객체를 검출
+        Args:
+            images: 입력 이미지 텐서 [B, C, H, W]
+            conf_threshold: confidence threshold
+            nms_threshold: NMS threshold
+        Returns:
+            Tuple: (boxes, scores, labels)
+                - boxes: 검출된 바운딩 박스들 [N, 4]
+                - scores: 각 박스의 confidence scores [N]
+                - labels: 각 박스의 클래스 레이블 [N]
+        """
+        # 임계값 설정
+        conf_threshold = conf_threshold or self.conf_threshold
+        nms_threshold = nms_threshold or self.nms_threshold
+        
+        # 검출 수행
+        results = self.detect(images)
+        
+        # 임계값 적용
+        mask = results['scores'] >= conf_threshold
+        boxes = torch.from_numpy(results['boxes'][mask]).to(self.device)
+        scores = torch.from_numpy(results['scores'][mask]).to(self.device)
+        labels = torch.from_numpy(results['labels'][mask]).to(self.device)
+        
+        return boxes, scores, labels
+
+    def _create_backbone(self, backbone_config: Dict) -> nn.Module:
         """
         백본 네트워크 생성
         Returns:

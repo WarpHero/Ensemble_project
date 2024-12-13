@@ -24,24 +24,30 @@ class YOLOV8Detector(BaseDetector):
         self.conf_threshold = config.get('conf_threshold', 0.3)
         self.iou_threshold = config.get('iou_threshold', 0.5)
         
-        # VGG16 백본 초기화
-        backbone_config = {
-            'pretrained': config.get('pretrained', True),
-            'freeze': config.get('freeze_backbone', True)
-        }
-        self.backbone = VGG16Backbone(backbone_config)
-        
-        # YOLO 모델 초기화
-        try:
-            self.model = YOLO(self.weights_path)
-            print(f"YOLO model loaded successfully from {self.weights_path}")
-        except Exception as e:
-            print(f"Error loading YOLO model: {str(e)}")
-            raise
+        # backbone 교체 여부 확인
+        use_custom_backbone = config.get('use_custom_backbone', False)
 
-        # YOLO 헤드 초기화
-        self.yolo_head = self._create_yolo_head()
+        if use_custom_backbone:
+            # backbone 변경 (예 : VGG16 백본 초기화)
+            backbone_config = {
+                'pretrained': config.get('pretrained', True),
+                'freeze': config.get('freeze_backbone', True)
+            }
+            self.backbone = VGG16Backbone(backbone_config)
+            # YOLO 헤드 초기화
+            self.yolo_head = self._create_yolo_head()
         
+        else:
+            # trained model 사용
+        
+            # YOLO 모델 초기화
+            try:
+                self.model = YOLO(self.weights_path)
+                print(f"YOLO model loaded successfully from {self.weights_path}")
+            except Exception as e:
+                print(f"Error loading YOLO model: {str(e)}")
+                raise
+
         self.to(self.device)
 
     def _create_yolo_head(self) -> nn.Module:
