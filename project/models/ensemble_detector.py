@@ -3,49 +3,9 @@ import torch
 import torchvision
 import numpy as np
 from typing import Dict, List, Tuple, Optional
+import PIL
 from PIL import Image
 from ultralytics import YOLO
-
-class YOLOV8Detector(BaseDetector):
-    def __init__(self, config: Dict):
-        super().__init__(config)
-        self.model = YOLO(config['weights'])
-        self.model.to(self.device)
-        
-    def detect(self, image: torch.Tensor) -> Dict:
-        results = self.model(image)
-        return self._process_results(results[0])
-    
-    def _process_results(self, result) -> Dict:
-        return {
-            'boxes': result.boxes.xyxy.cpu().numpy(),
-            'scores': result.boxes.conf.cpu().numpy(),
-            'labels': result.boxes.cls.cpu().numpy().astype(int)
-        }
-        
-    def preprocess(self, image: Image.Image) -> torch.Tensor:
-        return torch.tensor(np.array(image)).permute(2, 0, 1).float() / 255.0
-
-class FasterRCNNDetector(BaseDetector):
-    def __init__(self, config: Dict):
-        super().__init__(config)
-        backbone = torchvision.models.vgg16(pretrained=True).features
-        self.model = torchvision.models.detection.FasterRCNN(
-            backbone=backbone,
-            num_classes=91,
-            box_detections_per_img=500,
-            box_score_thresh=config.get('conf_threshold', 0.3)
-        )
-        self.model.to(self.device)
-        
-    def detect(self, image: torch.Tensor) -> Dict:
-        self.model.eval()
-        with torch.no_grad():
-            predictions = self.model([image])[0]
-        return predictions
-        
-    def preprocess(self, image: Image.Image) -> torch.Tensor:
-        return torchvision.transforms.functional.to_tensor(image)
 
 class EnsembleDetector:
     def __init__(self, config: Dict):

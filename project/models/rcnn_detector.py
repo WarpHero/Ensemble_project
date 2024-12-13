@@ -4,6 +4,7 @@ import torch.nn as nn
 from torchvision import transforms
 import numpy as np
 from typing import Dict, Tuple, List, Optional, Union
+import PIL
 from PIL import Image
 
 from .base_detector import BaseDetector
@@ -74,6 +75,50 @@ class FasterRCNNDetector(BaseDetector):
             'scores': np.concatenate(scores) if scores else np.array([]),
             'labels': np.concatenate(labels) if labels else np.array([])
         }
+
+    def _create_backbone(self) -> nn.Module:
+        """
+        백본 네트워크 생성
+        Returns:
+            nn.Module: 백본 네트워크
+        """
+        backbone_config = {
+            'pretrained': self.config.get('pretrained', True),
+            'freeze': self.config.get('freeze_backbone', True)
+        }
+        return VGG16Backbone(backbone_config)
+
+    def _create_faster_rcnn(self) -> nn.Module:
+        """
+        Faster R-CNN 모델 생성
+        Returns:
+            nn.Module: Faster R-CNN 모델
+        """
+        from torchvision.models.detection import FasterRCNN
+        from torchvision.models.detection.rpn import AnchorGenerator
+
+        # RPN 설정
+        anchor_generator = AnchorGenerator(
+            sizes=((32, 64, 128, 256, 512),),
+            aspect_ratios=((0.5, 1.0, 2.0),)
+        )
+
+        # ROI Pooling 설정
+        roi_pooler = torch.nn.ModuleDict({
+            'box': torch.nn.modules.pooling.AdaptiveAvgPool2d(output_size=7)
+        })
+
+        return FasterRCNN(
+            backbone=self.backbone,
+            num_classes=self.num_classes,
+            rpn_anchor_generator=anchor_generator,
+            box_roi_pool=roi_pooler['box'],
+            min_size=800,
+            max_size=1333,
+            box_score_thresh=self.conf_threshold,
+            box_nms_thresh=self.nms_threshold,
+            box_detections_per_img=100
+        )
 
     def get_features(self, images: torch.Tensor) -> Dict[str, torch.Tensor]:
         """

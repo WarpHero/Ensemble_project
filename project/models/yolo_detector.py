@@ -60,7 +60,7 @@ class YOLOV8Detector(BaseDetector):
             nn.Conv2d(512, self.num_classes * (5 + self.num_classes), kernel_size=1)
         )
 
-    def forward(self, images: torch.Tensor) -> torch.Tensor:
+    def forward(self, images: torch.Tensor) -> Dict[str, torch.Tensor]:
         """
         순전파 수행
         Args:
@@ -69,7 +69,13 @@ class YOLOV8Detector(BaseDetector):
             torch.Tensor: YOLO 출력
         """
         features = self.backbone(images)
-        return self.yolo_head(features['stage5'])
+        out = self.yolo_head(features['stage5'])
+    
+        return {
+            'features': features,
+            'predictions': out
+        }
+
 
     def detect(self, images: torch.Tensor) -> Dict[str, np.ndarray]:
         """
@@ -98,6 +104,50 @@ class YOLOV8Detector(BaseDetector):
             'scores': np.concatenate(scores) if scores else np.array([]),
             'labels': np.concatenate(labels) if labels else np.array([])
         }
+
+    def get_loss(self,
+                 predictions: Dict[str, torch.Tensor],
+                 targets: Dict[str, torch.Tensor]
+                 ) -> Dict[str, torch.Tensor]:
+        """
+        학습에 사용될 손실 함수 계산
+        Args:
+            predictions: 모델의 예측값
+            targets: 실제 정답값
+        Returns:
+            Dict: 각 손실 값들을 담은 dictionary
+        """
+        # YOLOv8은 내부적으로 loss를 계산하므로 모델의 loss를 그대로 반환
+        return self.model.loss(predictions, targets)
+
+    def predict(self, images: torch.Tensor, conf_threshold: Optional[float] = None, 
+                nms_threshold: Optional[float] = None) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        이미지에서 객체를 검출
+        Args:
+            images: 입력 이미지 텐서 [B, C, H, W]
+            conf_threshold: confidence threshold
+            nms_threshold: NMS threshold
+        Returns:
+            Tuple: (boxes, scores, labels)
+                - boxes: 검출된 바운딩 박스들 [N, 4]
+                - scores: 각 박스의 confidence scores [N]
+                - labels: 각 박스의 클래스 레이블 [N]
+        """
+        # 임계값 설정
+        conf_threshold = conf_threshold or self.conf_threshold
+        nms_threshold = nms_threshold or self.iou_threshold
+        
+        # 검출 수행
+        results = self.detect(images)
+        
+        # 임계값 적용
+        mask = results['scores'] >= conf_threshold
+        boxes = torch.from_numpy(results['boxes'][mask]).to(self.device)
+        scores = torch.from_numpy(results['scores'][mask]).to(self.device)
+        labels = torch.from_numpy(results['labels'][mask]).to(self.device)
+        
+        return boxes, scores, labels
 
     def preprocess(self, image: np.ndarray) -> torch.Tensor:
         """

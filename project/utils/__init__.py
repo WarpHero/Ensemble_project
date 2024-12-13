@@ -1,6 +1,6 @@
 # utils/__init__.py
 
-from .data_loader import CustomDataset
+# from .data_loader import DataAugmenter
 from .metrics import (
     compute_map,
     compute_iou,
@@ -12,14 +12,14 @@ from .utils import (
     preprocess_image,
     postprocess_predictions,
     get_optimizer,
-    get_scheduler
+    # get_scheduler
 )
-# from .augmenter import DataAugmenter
+from .argumenter import DataAugmenter
 
 __all__ = [
     # 데이터 관련
-    'CustomDataset',
-    # 'DataAugmenter',
+    # 'CustomDataset',
+    'DataAugmenter',
     
     # 평가 지표 관련
     'compute_map',
