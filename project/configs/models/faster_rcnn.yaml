@@ -9,7 +9,7 @@ backbone:
   freeze: true
   trainable_stages: [4, 5]  # 선택적으로 특정 스테이지만 학습 가능하게 설정
 weights: null
-num_classes: 81  # COCO classes + 1 background class
+num_classes: 91  # COCO classes + 1 background class 81-> 91
 model:
   num_classes: 91
   conf_threshold: 0.3
